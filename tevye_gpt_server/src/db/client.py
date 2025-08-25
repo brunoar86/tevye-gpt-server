@@ -4,4 +4,5 @@ import sqlite3
 class DBClient:
 
     def __init__(self):
-        pass
+        n = sqlite3.connect('database.db')
+        print(n)
