@@ -12,8 +12,10 @@ class RegisterIn(BaseModel):
     @field_validator('password')
     @classmethod
     def strong_password(cls, v: str) -> str:
-        if len(v) < 8 or not re.search(f'[A-Z]', v) or not re.search(r'[a-z]', v) or not re.search(r'\d', v):
-            raise ValueError('Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.')
+        if len(v) < 8 or not re.search(r'[A-Z]', v) or not re.search(r'[a-z]', v) or not re.search(r'\d', v):  # noqa: E501
+            raise ValueError('Password must be at least 8 characters long, \
+                             contain at least one uppercase letter, one \
+                             lowercase letter, and one digit.')
         return v
 
 
