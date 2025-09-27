@@ -5,20 +5,28 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from fastapi import (
-    APIRouter, Depends,
-    HTTPException, Request,
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
     Response, status
 )
 from security import (
-    bcrypt, make_access_token,
-    make_refresh_token, hash_refresh,
+    bcrypt,
+    make_access_token,
+    make_refresh_token,
+    hash_refresh,
     REFRESH_TTL, ACCESS_TTL
 )
 
 from tevye_gpt_server.src.db.client import db_client
-from tevye_gpt_server.src.modules.auth import Tenant, User
 from tevye_gpt_server.src.interfaces.auth import RegisterIn, TokenOut
-from tevye_gpt_server.src.modules.auth import RoleEnum, RefreshSession
+from tevye_gpt_server.src.modules.auth import (
+    RoleEnum,
+    RefreshSession,
+    Tenant,
+    User
+)
 from tevye_gpt_server.src.controllers.auth_controller import set_refresh_cookie
 
 router = APIRouter(prefix='/auth', tags=['auth'])
