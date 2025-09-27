@@ -11,26 +11,26 @@ from fastapi import (
     Request,
     Response, status
 )
-from security import (
-    bcrypt,
-    make_access_token,
-    make_refresh_token,
-    hash_refresh,
-    REFRESH_TTL, ACCESS_TTL
-)
 
-from tevye_gpt_server.src.db.client import db_client
+
+from tevye_gpt_server.src.db.client import get_db
 from tevye_gpt_server.src.interfaces.auth import RegisterIn, TokenOut
+from tevye_gpt_server.src.controllers.auth_controller import set_refresh_cookie
 from tevye_gpt_server.src.modules.auth import (
     RoleEnum,
     RefreshSession,
     Tenant,
     User
 )
-from tevye_gpt_server.src.controllers.auth_controller import set_refresh_cookie
+from tevye_gpt_server.src.utils.app_security import (
+    hash_password,
+    make_access_token,
+    make_refresh_token,
+    hash_refresh,
+    REFRESH_TTL, ACCESS_TTL
+)
 
 router = APIRouter(prefix='/auth', tags=['auth'])
-get_db = db_client.get_db
 log = structlog.get_logger(__name__='register route')
 
 
@@ -48,11 +48,11 @@ def register_user(data: RegisterIn, request: Request,
         tenant_id = tenant.id
 
     email_norm = data.email.strip().lower()
-    exists = db.query(User.filter(func.lower(User.email) == email_norm).first())  # noqa: E501
+    exists = db.query(User).filter(func.lower(User.email) == email_norm).first()  # noqa: E501
     if exists:
         raise HTTPException(status_code=409, detail='Email already registered')  # noqa: E501
 
-    pwd_hash = bcrypt.hash(data.password)
+    pwd_hash = hash_password(data.password)
 
     user = User(
         email=email_norm,
@@ -65,13 +65,19 @@ def register_user(data: RegisterIn, request: Request,
 
     fp = 'register'
     ip = request.client.host if request.client else None
+    refresh, meta = make_refresh_token(
+        sub=str(user.id),
+        sid="pending"
+    )
 
     sess = RefreshSession(
         user_id=user.id,
         user_agent_fingerprint=fp,
         ip=ip,
         is_active=True,
-        expires_at=datetime.now(timezone.utc) + REFRESH_TTL
+        expires_at=datetime.now(timezone.utc) + REFRESH_TTL,
+        refresh_hash=hash_refresh(refresh),
+        jti=meta['jti']
     )
     db.add(sess)
     db.flush()
@@ -86,8 +92,6 @@ def register_user(data: RegisterIn, request: Request,
         sub=str(user.id),
         sid=str(sess.id)
     )
-    sess.refresh_hash = hash_refresh(refresh)
-    sess.jti = meta['jti']
     db.commit()
 
     set_refresh_cookie(response, refresh)

@@ -11,10 +11,11 @@ def _augment_dsn_with_ssl(dsn: str, sslmode: str | None) -> str:
     return f"{dsn}{sep}sslmode={sslmode}"
 
 
-dsn = _augment_dsn_with_ssl(settings.DB_DSN, settings.DB_SSLMODE)
+raw_dsn: str = str(settings.DB_DSN)
+dsn: str = _augment_dsn_with_ssl(settings.DB_DSN, settings.DB_SSLMODE)
 
 engine = create_engine(
-    dsn,
+    raw_dsn,
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_recycle=settings.DB_POOL_RECYCLE,
@@ -42,5 +43,5 @@ def get_db():
 
 def healthcheck() -> bool:
     with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
+        conn.execute(text("SELECT * FROM users;"))
     return True

@@ -7,14 +7,12 @@ from sqlalchemy import (
     Index, UniqueConstraint, CheckConstraint, func, text,
     CHAR
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import (
     UUID as PG_UUID, ARRAY, ENUM as PG_ENUM, CITEXT, INET
 )
 
-
-class Base(DeclarativeBase):
-    pass
+from tevye_gpt_server.src.db.base import Base
 
 
 class RoleEnum(str, enum.Enum):
@@ -34,11 +32,6 @@ class Tenant(Base):
 class User(Base):
     __tablename__ = 'users'
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(
-        CITEXT,
-        unique=True,
-        nullable=False
-        )
     email: Mapped[str] = mapped_column(
         CITEXT,
         unique=True,
