@@ -1,5 +1,5 @@
-import hashlib
 import uuid
+import hashlib
 import secrets
 
 from jose import jwt
@@ -50,7 +50,7 @@ def make_access_token(
         "sub": sub,
         "sid": sid,
         "roles": roles,
-        "tv": token_version,         # token version
+        "tv": token_version,
         "iat": int(now.timestamp()),
         "exp": int((now + ACCESS_TTL).timestamp()),
         "jti": secrets.token_urlsafe(16),
@@ -58,14 +58,20 @@ def make_access_token(
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
 
+def decode_access_token(token: str) -> Dict[str, Any]:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    except jwt.ExpiredSignatureError as e:
+        raise ValueError("Invalid or expired access token") from e
+
+
 def make_refresh_token(*, sub: str, sid: str) -> Tuple[str, Dict[str, Any]]:
     jti = uuid.uuid4()
     rnd = secrets.token_urlsafe(32)
     token = f"{jti}.{rnd}"
-    meta = {"jti": jti, "sub": sub, "sid": sid}
+    meta: Dict[str, Any] = {"jti": jti, "sub": sub, "sid": sid}
     return token, meta
 
 
 def hash_refresh(refresh_token: str) -> str:
-    # Store only this hash in DB
     return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
