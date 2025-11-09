@@ -1,16 +1,18 @@
+import os
 import uuid
 import hashlib
 import secrets
 
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from typing import Any, Dict, List, Tuple
+from fastapi import HTTPException, status
 from datetime import datetime, timedelta, timezone
 
 
-JWT_SECRET = "change-me-access-secret"
-REFRESH_SECRET = "change-me-refresh-secret"
-JWT_ALG = "HS256"
+JWT_SECRET = os.getenv("SECRET")
+REFRESH_SECRET = os.getenv("SECRET")
+JWT_ALG = os.getenv("JWT_ALGORITHM")
 
 ACCESS_TTL = timedelta(minutes=15)
 REFRESH_TTL = timedelta(days=30)
@@ -75,3 +77,27 @@ def make_refresh_token(*, sub: str, sid: str) -> Tuple[str, Dict[str, Any]]:
 
 def hash_refresh(refresh_token: str) -> str:
     return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
+
+
+def verify_jwt_from_request(request) -> dict:
+    """
+    Validate JWT from Authorization header in the request.
+    """
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid Authorization header",
+        )
+
+    token = auth_header.removeprefix("Bearer ").strip()
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+        # Aqui o senhor pode validar iss, aud, roles, etc.
+        return payload
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        ) from e
